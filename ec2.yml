@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  EC2 Instance Create
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Project Name Prefix"
+        Parameters:
+          - PJPrefix
+      - Label:
+          default: "EC2Instance Configuration"
+        Parameters:
+          - KeyPairName
+          - EC2InstanceName
+          - EC2InstanceAMI
+          - EC2InstanceInstanceType
+          - EC2InstanceVolumeType
+          - EC2InstanceVolumeSize
+          - EC2InstanceSubnet
+          - SSHAccessSourceIP
+
+    ParameterLabels:
+      KeyPairName:
+        default: "KeyPairName"
+      EC2InstanceName:
+        default: "EC2 Name"
+      EC2InstanceAMI:
+        default: "EC2 AMI"
+      EC2InstanceInstanceType:
+        default: "EC2 InstanceType"
+      EC2InstanceVolumeType:
+        default: "EC2 VolumeType"
+      EC2InstanceVolumeSize:
+        default: "EC2 VolumeSize"
+      EC2InstanceSubnet:
+        default: "EC2 Subnet"
+      SSHAccessSourceIP:
+        default: "SSH AccessSourceIP"
+
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  PJPrefix:
+    Type: String
+
+#EC2Instance
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: ""
+  EC2InstanceName:
+    Type: String
+    Default: "ec2-01"
+  EC2InstanceAMI:
+    Type: String
+    Default: "ami-06c6f3fa7959e5fdd"
+  EC2InstanceInstanceType:
+    Type: String
+    Default: "t3.micro"
+  EC2InstanceVolumeType:
+    Type: String
+    Default: "gp3"
+  EC2InstanceVolumeSize:
+    Type: Number
+    Default: "30"
+  EC2InstanceSubnet:
+    Type: String
+    Default: "public-subnet-a"
+    AllowedValues: [ public-subnet-a, public-subnet-c ]
+  SSHAccessSourceIP:
+    Type: String
+
+Resources:
+
+# ------------------------------------------------------------#
+#  EC2Instance
+# ------------------------------------------------------------#
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJPrefix}-${EC2InstanceName}"
+      ImageId: !Ref EC2InstanceAMI
+      InstanceType: !Ref EC2InstanceInstanceType
+      KeyName: !Ref KeyPairName
+      Monitoring: false
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !ImportValue
+            Fn::Sub: "${PJPrefix}-${EC2InstanceSubnet}"
+          SecurityGroupIds: !ImportValue
+            Fn::Sub: "!Sub "${PJPrefix}-${SGName}"
+          DeviceIndex: 0
+
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: true
+            VolumeType: !Ref EC2InstanceVolumeType
+            VolumeSize: !Ref EC2InstanceVolumeSize
+
+# ------------------------------------------------------------#
+# Output Parameters
+# ------------------------------------------------------------#                
+Outputs:
+#EC2Instance
+  EC2InstanceID:
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub "${PJPrefix}-${EC2InstanceName}-id"
+
+  EC2InstancePrivateIp:
+    Value: !GetAtt EC2Instance.PrivateIp
+    Export:
+      Name: !Sub "${PJPrefix}-${EC2InstanceName}-private-ip"
+
+  

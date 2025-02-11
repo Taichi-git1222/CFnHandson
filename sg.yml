@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  SecurityGroup Create
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Project Name Prefix"
+        Parameters:
+          - PJPrefix
+      - Label:
+          default: "Security Group Name"
+        Parameters:
+          - SGName
+# ------------------------------------------------------------#
+# Input Parameters
+# ------------------------------------------------------------# 
+Parameters:
+  PJPrefix:
+    Type: String
+  SGName:
+    Type: String
+
+Resources:
+
+# ------------------------------------------------------------#
+#  Security Group
+# ------------------------------------------------------------#
+  SGforSSH:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+    Tags:
+        - Key: Name
+          Value: !Sub "${PJPrefix}-${SGName}"
+    GroupDescription: Enable SSH access via port 22
+    SecurityGroupIngress:
+       - IpProtocol: tcp
+         FromPort: 22
+         ToPort: 22
+         CidrIp: 0.0.0.0/0
+
+# ------------------------------------------------------------#
+# Output Parameters
+# ------------------------------------------------------------#                
+Outputs:
+#EC2Instance
+  SecurityGroupID:
+    Value: !Ref SG1
+    Export:
+      Name: !Sub "${PJPrefix}-${SGName}-sg"
