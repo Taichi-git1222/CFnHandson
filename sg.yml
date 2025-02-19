@@ -1,6 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description:
-  SecurityGroup Create
+AWSTemplateFormatVersion: 2010-09-09
 
 Metadata:
   "AWS::CloudFormation::Interface":
@@ -9,43 +7,85 @@ Metadata:
           default: "Project Name Prefix"
         Parameters:
           - PJPrefix
-      - Label:
-          default: "Security Group Name"
-        Parameters:
-          - SGName
-# ------------------------------------------------------------#
-# Input Parameters
-# ------------------------------------------------------------# 
+
 Parameters:
   PJPrefix:
     Type: String
-  SGName:
-    Type: String
 
-Resources:
 
-# ------------------------------------------------------------#
-#  Security Group
-# ------------------------------------------------------------#
-  SGforSSH:
+Resources:   
+  SGForALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      Tags: 
+        - Key: Name
+          Value: ALB-SG
+      GroupName: ALB-SG
+      GroupDescription: Allow http to client host
+      VpcId: { "Fn::ImportValue": !Sub "${PJPrefix}-vpc" }
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+  
+  SGForWebserver:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      Tags: 
+        - Key: Name
+          Value: Webserver-SG
+      GroupName: Webserver-SG
+      GroupDescription: Allow http to client host
+      VpcId: { "Fn::ImportValue": !Sub "${PJPrefix}-vpc" }
+      # インバウンド設定
+      SecurityGroupIngress:
+        - FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+          SourceSecurityGroupId: !Ref SGForALB
+        - FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  SGForRDS:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-    Tags:
+      VpcId: { "Fn::ImportValue": !Sub "${PJPrefix}-vpc" }
+      GroupName: RDS-SG
+      GroupDescription: "-"
+      Tags:
         - Key: Name
-          Value: !Sub "${PJPrefix}-${SGName}"
-    GroupDescription: Enable SSH access via port 22
-    SecurityGroupIngress:
-       - IpProtocol: tcp
-         FromPort: 22
-         ToPort: 22
-         CidrIp: 0.0.0.0/0
+          Value: RDS-SG
+
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref SGForWebserver
+          
 
 # ------------------------------------------------------------#
 # Output Parameters
 # ------------------------------------------------------------#                
 Outputs:
-#EC2Instance
-  SecurityGroupID:
-    Value: !Ref SG1
+#SecurityGroup
+  SGForALB:
+    Value: !Ref SGForALB
     Export:
-      Name: !Sub "${PJPrefix}-${SGName}-sg"
+      Name: !Sub "${PJPrefix}-alb-sg"
+  
+  SGForWebserver:
+    Value: !Ref SGForWebserver
+    Export:
+      Name: !Sub "${PJPrefix}-webserver-sg"
+
+  SGForRDS:
+    Value: !Ref SGForRDS
+    Export:
+      Name: !Sub "${PJPrefix}-rds-sg"

@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  ALB Create
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "Project Name Prefix"
+        Parameters:
+          - PJPrefix
+  
+Parameters:
+  PJPrefix:
+    Type: String
+
+Resources:   
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: "application"
+      Scheme: "internet-facing"
+      Name: !Sub ${PJPrefix}-alb
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJPrefix}-alb
+      IpAddressType: ipv4
+      Subnets: 
+        - { "Fn::ImportValue": !Sub "${PJPrefix}-public-subnet-a" }
+        - { "Fn::ImportValue": !Sub "${PJPrefix}-public-subnet-b" }
+      SecurityGroups: 
+        - { "Fn::ImportValue": !Sub "${PJPrefix}-alb-sg" }
+
+  ListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+  
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${PJPrefix}-tg
+      Tags:
+        - Key: Name
+          Value: !Sub ${PJPrefix}-tg
+      Port: 80
+      Protocol: HTTP
+      Matcher:
+        HttpCode: "200-399"
+      VpcId: { "Fn::ImportValue": !Sub "${PJPrefix}-vpc" }
+      TargetType: instance
+      Targets:
+        - Id: { "Fn::ImportValue": !Sub "${PJPrefix}-${EC2InstanceName}-id" }
+
+Outputs:
+  ALBURL:
+    Description: ALB endpoint URL
+    Value: !Join
+        - ""
+        - - http://
+          - !GetAtt ALB.DNSName

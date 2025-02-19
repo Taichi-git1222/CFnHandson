@@ -94,6 +94,7 @@ Resources:
   PublicSubnetA: 
     Type: "AWS::EC2::Subnet"
     Properties: 
+      MapPublicIpOnLaunch: true
       AvailabilityZone: "ap-northeast-1a"
       CidrBlock: !Ref PublicSubnetACIDR
       VpcId: !Ref VPC 
@@ -105,6 +106,7 @@ Resources:
   PublicSubnetC: 
     Type: "AWS::EC2::Subnet"
     Properties: 
+      MapPublicIpOnLaunch: true
       AvailabilityZone: "ap-northeast-1c"
       CidrBlock: !Ref PublicSubnetCCIDR
       VpcId: !Ref VPC 
